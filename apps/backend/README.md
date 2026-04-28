@@ -31,9 +31,9 @@ Run tests:
 Start the backend:
 
 ```bash
-./gradlew bootRun
+./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
 Default local API base URL: `http://localhost:8080/api/v1`
 
-The test profile uses an in-memory H2 database in PostgreSQL compatibility mode. Local runtime defaults to PostgreSQL connection settings from `application.properties`.
+The `local` and `test` profiles use an in-memory H2 database in PostgreSQL compatibility mode. The default runtime profile uses PostgreSQL connection settings from `application.properties`.
