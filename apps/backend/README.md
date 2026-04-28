@@ -20,3 +20,20 @@ This directory is reserved for the Spring Boot modular monolith.
 - Flyway or Liquibase
 - OpenAPI contract generation
 
+## Local Development
+
+Run tests:
+
+```bash
+./gradlew test
+```
+
+Start the backend:
+
+```bash
+./gradlew bootRun
+```
+
+Default local API base URL: `http://localhost:8080/api/v1`
+
+The test profile uses an in-memory H2 database in PostgreSQL compatibility mode. Local runtime defaults to PostgreSQL connection settings from `application.properties`.

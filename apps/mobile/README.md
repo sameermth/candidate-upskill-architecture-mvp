@@ -23,3 +23,10 @@ The mobile app should consume backend APIs through generated or typed clients ba
 
 When backend endpoints change, update the API contract first, then update the mobile API client and affected screens.
 
+## Local Development
+
+1. Install dependencies with `npm install`.
+2. Copy `.env.example` to `.env` if you need a non-default backend URL.
+3. Start the app with `npm run start`.
+
+Default API URL: `http://localhost:8080/api/v1`

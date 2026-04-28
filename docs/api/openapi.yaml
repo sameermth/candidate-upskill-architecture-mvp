@@ -8,7 +8,188 @@ servers:
     description: Production placeholder
   - url: http://localhost:8080/api/v1
     description: Local development
-paths: {}
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags:
+        - Platform
+      summary: Check backend health
+      responses:
+        "200":
+          description: Backend is reachable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /auth/signup:
+    post:
+      operationId: signup
+      tags:
+        - Auth
+      summary: Create a user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "201":
+          description: Account created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+  /auth/login:
+    post:
+      operationId: login
+      tags:
+        - Auth
+      summary: Start a user session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags:
+        - Auth
+      summary: Get the current authenticated user
+      responses:
+        "200":
+          description: Current user profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+  /resumes:
+    post:
+      operationId: uploadResume
+      tags:
+        - Resumes
+      summary: Upload a resume for async parsing
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "202":
+          description: Resume upload accepted for processing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationAcceptedResponse"
 components:
-  schemas: {}
-
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: UP
+        service:
+          type: string
+          example: candidate-upskill-backend
+        timestamp:
+          type: string
+          format: date-time
+    SignupRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    AuthSessionResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - user
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+    UserProfile:
+      type: object
+      required:
+        - id
+        - email
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+    OperationAcceptedResponse:
+      type: object
+      required:
+        - operationId
+        - status
+        - statusUrl
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - PENDING
+            - RUNNING
+            - SUCCEEDED
+            - FAILED_RETRYING
+            - FAILED_PERMANENT
+            - CANCELLED
+        statusUrl:
+          type: string
