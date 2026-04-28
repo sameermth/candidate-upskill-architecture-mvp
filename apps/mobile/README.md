@@ -30,3 +30,6 @@ When backend endpoints change, update the API contract first, then update the mo
 3. Start the app with `npm run start`.
 
 Default API URL: `http://localhost:8080/api/v1`
+
+For Android emulators, set `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080/api/v1`.
+For a physical device, use your machine's LAN IP address instead of `localhost`.
