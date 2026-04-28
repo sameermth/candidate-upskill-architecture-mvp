@@ -1,0 +1,14 @@
+openapi: 3.1.0
+info:
+  title: Candidate Upskill API
+  version: 0.1.0
+  description: MVP API contract for backend and mobile collaboration.
+servers:
+  - url: https://api.example.com/api/v1
+    description: Production placeholder
+  - url: http://localhost:8080/api/v1
+    description: Local development
+paths: {}
+components:
+  schemas: {}
+

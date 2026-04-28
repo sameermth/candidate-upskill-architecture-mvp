@@ -25,3 +25,4 @@ This folder contains MVP architecture decisions for the AI Interview Preparation
 - ADR-018: PII Redaction and Data Minimization Standard
 - ADR-019: API Idempotency Standard for Mutating Operations
 - ADR-020: Observability and SLO Policy
+- ADR-021: Mobile App Architecture
