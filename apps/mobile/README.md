@@ -33,3 +33,5 @@ Default API URL: `http://localhost:8080/api/v1`
 
 For Android emulators, set `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080/api/v1`.
 For a physical device, use your machine's LAN IP address instead of `localhost`.
+
+The first authenticated workflow supports PDF, DOCX, and plain text resume selection through Expo DocumentPicker.

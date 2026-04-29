@@ -18,6 +18,39 @@ export type AuthSessionResponse = {
   user: UserProfile;
 };
 
+export type OperationStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "SUCCEEDED"
+  | "FAILED_RETRYING"
+  | "FAILED_PERMANENT"
+  | "CANCELLED";
+
+export type OperationAcceptedResponse = {
+  operationId: string;
+  status: OperationStatus;
+  statusUrl: string;
+};
+
+export type OperationResponse = {
+  id: string;
+  type: "RESUME_PARSE";
+  status: OperationStatus;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string | null;
+};
+
+export type ResumeUploadFile = {
+  uri: string;
+  name: string;
+  mimeType?: string | null;
+};
+
 export type SignupRequest = {
   name: string;
   email: string;
@@ -31,7 +64,7 @@ export type LoginRequest = {
 
 type RequestOptions = {
   method?: "GET" | "POST";
-  body?: unknown;
+  body?: unknown | FormData;
   accessToken?: string;
 };
 
@@ -40,7 +73,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     Accept: "application/json",
   };
 
-  if (options.body !== undefined) {
+  const isFormData = options.body instanceof FormData;
+
+  if (options.body !== undefined && !isFormData) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -48,10 +83,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     headers.Authorization = `Bearer ${options.accessToken}`;
   }
 
+  const requestBody: BodyInit | undefined =
+    options.body === undefined
+      ? undefined
+      : isFormData
+        ? (options.body as BodyInit)
+        : JSON.stringify(options.body);
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? "GET",
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: requestBody,
   });
 
   if (!response.ok) {
@@ -89,6 +131,33 @@ export function refreshSession(refreshToken: string): Promise<AuthSessionRespons
 
 export function getCurrentUser(accessToken: string): Promise<UserProfile> {
   return request<UserProfile>("/auth/me", {
+    accessToken,
+  });
+}
+
+export function uploadResume(
+  accessToken: string,
+  file: ResumeUploadFile,
+): Promise<OperationAcceptedResponse> {
+  const formData = new FormData();
+  formData.append(
+    "file",
+    {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType ?? "application/octet-stream",
+    } as unknown as Blob,
+  );
+
+  return request<OperationAcceptedResponse>("/resumes", {
+    method: "POST",
+    accessToken,
+    body: formData,
+  });
+}
+
+export function getOperation(accessToken: string, operationId: string): Promise<OperationResponse> {
+  return request<OperationResponse>(`/operations/${operationId}`, {
     accessToken,
   });
 }

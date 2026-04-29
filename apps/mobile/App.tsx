@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import * as DocumentPicker from "expo-document-picker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -14,10 +15,13 @@ import {
 
 import {
   getCurrentUser,
+  getOperation,
   login,
   refreshSession,
   signup,
+  uploadResume,
   type AuthSessionResponse,
+  type OperationResponse,
   type UserProfile,
 } from "./src/api/client";
 import {
@@ -41,6 +45,8 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [session, setSession] = useState<ActiveSession | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resumeLoading, setResumeLoading] = useState(false);
+  const [resumeOperation, setResumeOperation] = useState<OperationResponse | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -108,6 +114,7 @@ export default function App() {
   const signOut = useCallback(async () => {
     await clearStoredSession();
     setSession(null);
+    setResumeOperation(null);
     setMessage(null);
   }, []);
 
@@ -130,6 +137,62 @@ export default function App() {
       setLoading(false);
     }
   }, [applySession, session]);
+
+  const refreshOperation = useCallback(async () => {
+    if (!session || !resumeOperation) {
+      return;
+    }
+
+    setResumeLoading(true);
+    setMessage(null);
+
+    try {
+      setResumeOperation(await getOperation(session.accessToken, resumeOperation.id));
+    } catch (caughtError) {
+      setMessage(caughtError instanceof Error ? caughtError.message : "Unable to refresh resume status");
+    } finally {
+      setResumeLoading(false);
+    }
+  }, [resumeOperation, session]);
+
+  const uploadSelectedResume = useCallback(async () => {
+    if (!session) {
+      return;
+    }
+
+    setResumeLoading(true);
+    setMessage(null);
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+        type: [
+          "application/pdf",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "text/plain",
+        ],
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const accepted = await uploadResume(session.accessToken, {
+        uri: asset.uri,
+        name: asset.name,
+        mimeType: asset.mimeType,
+      });
+
+      setResumeOperation(await getOperation(session.accessToken, accepted.operationId));
+      setMessage("Resume uploaded. Parsing is queued.");
+    } catch (caughtError) {
+      setMessage(caughtError instanceof Error ? caughtError.message : "Resume upload failed");
+    } finally {
+      setResumeLoading(false);
+    }
+  }, [session]);
 
   if (bootstrapping) {
     return (
@@ -158,37 +221,83 @@ export default function App() {
             </Text>
             <Text style={styles.subtitle}>
               {session
-                ? "Your mobile session is connected to the Spring Boot API."
+                ? "You are signed in and ready for the first preparation step."
                 : "Sign in to continue building the interview prep workspace."}
             </Text>
           </View>
 
           {session ? (
-            <View style={styles.panel}>
-              <Text style={styles.panelLabel}>Signed in as</Text>
-              <Text style={styles.userName}>{session.user.name}</Text>
-              <Text style={styles.userEmail}>{session.user.email}</Text>
+            <>
+              <View style={styles.panel}>
+                <Text style={styles.panelLabel}>Signed in as</Text>
+                <Text style={styles.userName}>{session.user.name}</Text>
+                <Text style={styles.userEmail}>{session.user.email}</Text>
 
-              <View style={styles.buttonRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={refresh}
-                  style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
-                >
-                  <Text style={styles.secondaryButtonText}>
-                    {loading ? "Refreshing" : "Refresh session"}
-                  </Text>
-                </Pressable>
+                <View style={styles.buttonRow}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={refresh}
+                    style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+                  >
+                    <Text style={styles.secondaryButtonText}>
+                      {loading ? "Refreshing" : "Refresh session"}
+                    </Text>
+                  </Pressable>
 
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={signOut}
-                  style={({ pressed }) => [styles.dangerButton, pressed && styles.buttonPressed]}
-                >
-                  <Text style={styles.dangerButtonText}>Sign out</Text>
-                </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={signOut}
+                    style={({ pressed }) => [styles.dangerButton, pressed && styles.buttonPressed]}
+                  >
+                    <Text style={styles.dangerButtonText}>Sign out</Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
+
+              <View style={styles.panel}>
+                <Text style={styles.panelLabel}>Resume</Text>
+                <Text style={styles.panelTitle}>Upload your latest resume</Text>
+                <Text style={styles.panelCopy}>
+                  PDF, DOCX, and plain text files are accepted. You can track the upload status after it starts.
+                </Text>
+
+                {resumeOperation && (
+                  <View style={styles.operationBox}>
+                    <Text style={styles.operationLabel}>Operation</Text>
+                    <Text style={styles.operationValue}>{resumeOperation.status}</Text>
+                    <Text style={styles.operationMeta}>{resumeOperation.type}</Text>
+                  </View>
+                )}
+
+                <View style={styles.buttonRow}>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={resumeLoading}
+                    onPress={uploadSelectedResume}
+                    style={({ pressed }) => [
+                      styles.primaryButton,
+                      resumeLoading && styles.buttonDisabled,
+                      pressed && styles.buttonPressed,
+                    ]}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {resumeLoading ? "Uploading..." : "Choose resume"}
+                    </Text>
+                  </Pressable>
+
+                  {resumeOperation && (
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={resumeLoading}
+                      onPress={refreshOperation}
+                      style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+                    >
+                      <Text style={styles.secondaryButtonText}>Refresh status</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            </>
           ) : (
             <View style={styles.panel}>
               <View style={styles.segmented}>
@@ -335,6 +444,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
   },
+  panelTitle: {
+    color: "#111111",
+    fontSize: 21,
+    fontWeight: "800",
+  },
+  panelCopy: {
+    color: "#59615D",
+    fontSize: 14,
+    lineHeight: 20,
+  },
   userName: {
     color: "#111111",
     fontSize: 26,
@@ -343,6 +462,29 @@ const styles = StyleSheet.create({
   userEmail: {
     color: "#59615D",
     fontSize: 15,
+  },
+  operationBox: {
+    backgroundColor: "#F9F7F1",
+    borderColor: "#DDD7CB",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 5,
+    padding: 14,
+  },
+  operationLabel: {
+    color: "#626C67",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  operationValue: {
+    color: "#1F4E3D",
+    fontSize: 22,
+    fontWeight: "900",
+  },
+  operationMeta: {
+    color: "#59615D",
+    fontSize: 13,
   },
   segmented: {
     backgroundColor: "#EEE8DC",

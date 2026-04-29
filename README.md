@@ -16,8 +16,9 @@ The current starter slice wires:
 
 - backend health endpoint: `GET /api/v1/health`
 - backend auth endpoints: `POST /auth/signup`, `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me`
+- backend resume upload and operation status: `POST /resumes`, `GET /operations/{operationId}`
 - mobile API client: `apps/mobile/src/api/client.ts`
-- mobile auth screen and secure token storage: `apps/mobile/App.tsx`
+- mobile auth, secure token storage, and resume upload entry point: `apps/mobile/App.tsx`
 - shared contract: `docs/api/openapi.yaml`
 
 ## Branching

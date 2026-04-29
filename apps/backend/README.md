@@ -37,3 +37,5 @@ Start the backend:
 Default local API base URL: `http://localhost:8080/api/v1`
 
 The `local` and `test` profiles use an in-memory H2 database in PostgreSQL compatibility mode. The default runtime profile uses PostgreSQL connection settings from `application.properties`.
+
+Uploaded resumes are stored under `app.storage.resume-dir`, which defaults to the system temp directory for local development.
